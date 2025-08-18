@@ -1,4 +1,4 @@
-module gws/6/databases
+module github.com/hryak228pizza/wbTech.L0
 
 go 1.21
 

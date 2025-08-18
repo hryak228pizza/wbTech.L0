@@ -1,4 +1,4 @@
-package main
+package generator
 
 import (
 	"fmt"
@@ -6,10 +6,11 @@ import (
 	"strconv"
 	"time"
 	"github.com/google/uuid"
+    m "github.com/hryak228pizza/wbTech.L0/cmd"
 )
 
 
-func newOrder()Order {
+func newOrder() m.Order {
 
 	// every order fields
 	orderId := uuid.New().String()+"testID"
@@ -33,7 +34,7 @@ func newOrder()Order {
     region := "testRegion"
     email := "testMail@example.com"
 
-    delivery := Delivery{
+    delivery := m.Delivery{
         OrderUID: orderId,
         Name:     &name,
         Phone:    &phone,
@@ -55,7 +56,7 @@ func newOrder()Order {
     goodsTotal := amount - deliveryCost
     fee := int64(1 + rand.Intn(99))
 
-    payment := Payment{
+    payment := m.Payment{
         Transaction:   orderId,
         RequestID:     &reqId,
         Currency:      &currency,
@@ -69,7 +70,7 @@ func newOrder()Order {
     }
 
 	// generate item structs
-    var items []*Item
+    var items []*m.Item
     for i := 0; i < rand.Intn(3)+1; i++ {
         chrt := int64(1 + rand.Intn(999998))
         price := int64(1 + rand.Intn(999))
@@ -81,7 +82,7 @@ func newOrder()Order {
         nm := int64(1 + rand.Intn(999998))
         brand := "testBrand"
         status := int64(202)
-        items = append(items, &Item{
+        items = append(items, &m.Item{
             ID:          i + 1,
             OrderUID:    orderId,
             ChrtID:      &chrt,
@@ -98,7 +99,7 @@ func newOrder()Order {
         })
     }
 
-    return Order{
+    return m.Order{
         OrderUID:          orderId,
         TrackNumber:       &track,
         Entry:             &entry,

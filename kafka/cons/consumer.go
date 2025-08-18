@@ -14,7 +14,7 @@ const (
 	groupID       = "new-orders-group"
 )
 
-func main() {
+func Consumer() {
 	r := kafka.NewReader(kafka.ReaderConfig{
 		Brokers: []string{brokerAddress},
 		Topic:   topic,

@@ -11,6 +11,8 @@ import (
     _ "log"
     _ "github.com/lib/pq"
     //kafka "github.com/segmentio/kafka-go"
+
+    model "github.com/hryak228pizza/wbTech.L0/cmd"
 )
 
 
@@ -30,7 +32,7 @@ func (h *Handler) List(w http.ResponseWriter, r *http.Request) {
     vars := mux.Vars(r)
 	id := vars["id"]
 
-    orderInfo := &Order{}
+    orderInfo := &model.Order{}
 
     // order info parse
     ordersRow := h.DB.QueryRow("SELECT * FROM orders WHERE order_uid = $1", id)
@@ -49,7 +51,7 @@ func (h *Handler) List(w http.ResponseWriter, r *http.Request) {
     }
     
     // delivery info parse
-    delivery := &Delivery{}
+    delivery := &model.Delivery{}
     deliveryRow := h.DB.QueryRow("SELECT * FROM delivery WHERE order_uid = $1", id)
     if err := deliveryRow.Scan(&delivery.OrderUID, &delivery.Name, &delivery.Phone, &delivery.Zip, &delivery.City, &delivery.Address, &delivery.Region, &delivery.Email); err != nil {
         if err == sql.ErrNoRows {
@@ -67,7 +69,7 @@ func (h *Handler) List(w http.ResponseWriter, r *http.Request) {
     orderInfo.Delivery = *delivery
 
     // payment info parse
-    payment := &Payment{}
+    payment := &model.Payment{}
     paymentRow := h.DB.QueryRow("SELECT * FROM payment WHERE transaction = $1", id)
     if err := paymentRow.Scan(&payment.Transaction, &payment.RequestID, 
         &payment.Currency, &payment.Provider, &payment.Amount, &payment.PaymentDT,
@@ -88,7 +90,7 @@ func (h *Handler) List(w http.ResponseWriter, r *http.Request) {
     orderInfo.Payment = *payment
 
     // items Parse
-    items := []*Item{}
+    items := []*model.Item{}
     itemsRows, err := h.DB.Query("SELECT * FROM items WHERE track_number = $1", orderInfo.TrackNumber)
     if err != nil {
         w.WriteHeader(http.StatusInternalServerError)
@@ -97,7 +99,7 @@ func (h *Handler) List(w http.ResponseWriter, r *http.Request) {
     }
     defer itemsRows.Close()
     for itemsRows.Next() {
-        item := &Item{}
+        item := &model.Item{}
         if err := itemsRows.Scan(&item.ID, &item.OrderUID, &item.ChrtID,
                 &item.TrackNumber, &item.Price, &item.Rid, &item.Name, &item.Sale, 
                 &item.Size, &item.TotalPrice, &item.NmID, &item.Brand, &item.Status,
