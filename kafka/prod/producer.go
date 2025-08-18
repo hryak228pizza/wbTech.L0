@@ -1,6 +1,7 @@
 package producer
 
 import (
+	"encoding/json"
 	"context"
 	"fmt"
 	"log"
@@ -22,27 +23,27 @@ func Producer() {
 	})
 	defer w.Close()
 
-	order := &gen.newOrder()
+	order, err := json.Marshal(gen.NewOrder())
+	if err != nil { 
+		log.Fatal(err)
+		return
+	}
 
-	//sendMsgToKafka(w, order)
+	sendMsg(w, string(order))
 
-	fmt.Println("Producer finished.")
+	fmt.Println("Producer finished")
 }
 
-func sendMsgToKafka(w *kafka.Writer, msgs []string) {
-	for i, msgBody := range msgs {
-		msg := kafka.Message{
-			Key:   []byte(fmt.Sprintf("Сообщение №%d", i+1)),
-			Value: []byte(msgBody),
-			Time:  time.Now(),
-		}
-
-		err := w.WriteMessages(context.Background(), msg)
-		if err != nil {
-			log.Printf("ошибка отправки сообщения в Кафку '%s': %v\n", msgBody, err)
-		} else {
-			fmt.Printf("Отправленное в Кафку сообщение: %s\n", msgBody)
-		}
-		time.Sleep(200 * time.Millisecond)
+func sendMsg(w *kafka.Writer, m string) {
+	msg := kafka.Message{
+		Value: []byte(m),
 	}
+
+	err := w.WriteMessages(context.Background(), msg)
+	if err != nil {
+		log.Printf("ошибка отправки сообщения в Кафку '%s': %v\n", msg.Value, err)
+	} else {
+		fmt.Printf("Отправленное в Кафку сообщение: %s\n", msg.Value)
+	}
+	time.Sleep(200 * time.Millisecond)
 }

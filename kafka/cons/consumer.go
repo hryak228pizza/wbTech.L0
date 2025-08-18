@@ -24,13 +24,13 @@ func Consumer() {
 
 	fmt.Printf("Консьюмер подписан на топик '%s' в группе '%s'\n\n", topic, groupID)
 
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx, final := context.WithCancel(context.Background())
+	defer final()
 
-	readMsgs(ctx, r)
+	readMsg(ctx, r)
 }
 
-func readMsgs(ctx context.Context, r *kafka.Reader) {
+func readMsg(ctx context.Context, r *kafka.Reader) {
 	for {
 		m, err := r.ReadMessage(ctx)
 		if err != nil {

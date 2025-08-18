@@ -10,7 +10,7 @@ import (
 )
 
 
-func newOrder() m.Order {
+func NewOrder() m.Order {
 
 	// every order fields
 	orderId := uuid.New().String()+"testID"
