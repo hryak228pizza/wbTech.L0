@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"time"
 	"github.com/google/uuid"
-    m "github.com/hryak228pizza/wbTech.L0/cmd"
+    m "github.com/hryak228pizza/wbTech.L0/internal/model"
 )
 
 
@@ -47,7 +47,7 @@ func NewOrder() m.Order {
 
 	// payment fields
     reqId := "testReq"
-    currency := "testCurrency"
+    currency := "testCrrcy"
     provider := "testProvider"
     amount := int64(1 + rand.Intn(9999))
     paymentDT := time.Now().Unix()

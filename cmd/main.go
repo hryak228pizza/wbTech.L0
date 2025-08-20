@@ -12,7 +12,7 @@ import (
     _ "github.com/lib/pq"
     //kafka "github.com/segmentio/kafka-go"
 
-    model "github.com/hryak228pizza/wbTech.L0/cmd"
+    model "github.com/hryak228pizza/wbTech.L0/internal/model"
 )
 
 
