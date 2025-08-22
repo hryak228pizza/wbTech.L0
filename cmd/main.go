@@ -5,13 +5,14 @@ import (
     "net/http"
     "github.com/gorilla/mux"
     "html/template"
-    "fmt"
+    _ "fmt"
     "encoding/json"
     _ "time"
     _ "log"
     _ "github.com/lib/pq"
     //kafka "github.com/segmentio/kafka-go"
 
+    zap "go.uber.org/zap"
     model "github.com/hryak228pizza/wbTech.L0/internal/model"
 )
 
@@ -21,14 +22,8 @@ type Handler struct {
 	Tmpl *template.Template
 }
 
-func Add(db *sql.DB) (sql.Result, error){
-    //result, err := db.Exec("insert into delivery (order_uid, name, phone, zip, city, address, region, email) values ($1, $2, $3, $4, $5, $6, $7, $8)", 
-    //    "aaaabbbbbcccccctest", "testname", "+9420000042", "152625", "testcity", "testaddress", "testregion", "testmail@com")
-	return db.Exec("insert into orders (order_uid, track_number) values ($1, $2)",
-		"12345", "TESTTRACKERSECOND")    
-}
-
 func (h *Handler) List(w http.ResponseWriter, r *http.Request) {
+
     vars := mux.Vars(r)
 	id := vars["id"]
 
@@ -123,8 +118,16 @@ func (h *Handler) List(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) Page(w http.ResponseWriter, r *http.Request) {
+
+    // looger init
+    logger := zap.NewExample()
+    defer logger.Sync()
+
     err := h.Tmpl.ExecuteTemplate(w, "index.html", "")
     if err != nil {
+        logger.Info("failed to execute html template",
+            zap.String("url", r.URL.Path),
+        )
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -132,15 +135,17 @@ func (h *Handler) Page(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 
+    // looger init
+    logger := zap.NewExample()
+    defer logger.Sync()
+
 	dsn := "user=postgres password=123 dbname=postgres sslmode=disable"
     db, err := sql.Open("postgres", dsn)
-    if err != nil { panic(err) }     
+    if err != nil { 
+        logger.Info("failed to open database")
+    }     
     defer db.Close()
-    
-    // result, err := Add(db)
-    // if err != nil{ panic(err) }	
-    // fmt.Println(result.RowsAffected())
-    
+        
     handlers := &Handler{
 		DB:   db,
 		Tmpl: template.Must(template.ParseGlob("templates/*")),
@@ -150,7 +155,12 @@ func main() {
     r.HandleFunc("/", handlers.Page).Methods("GET")
 	r.HandleFunc("/order/{id}", handlers.List).Methods("GET")
 
-	fmt.Println("starting server at :8080")
+    logger.Info("starting server",
+		zap.String("logger", "ZAP"),
+		zap.String("host", "localhost"),
+		zap.Int("port", 8080),
+	)
+	//fmt.Println("starting server at :8080")
 	http.ListenAndServe(":8080", r)
 
     

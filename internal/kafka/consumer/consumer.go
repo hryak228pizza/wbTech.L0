@@ -63,7 +63,7 @@ func saveOrder(db *sql.DB, o *model.Order) error {
 			tx.Rollback()
 		}
 	}()
-
+	
 	// orders
 	_, err = tx.Exec(`INSERT INTO orders 
 		(order_uid, track_number, entry, locale, internal_signature, 
