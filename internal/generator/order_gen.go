@@ -9,7 +9,7 @@ import (
     m "github.com/hryak228pizza/wbTech.L0/internal/model"
 )
 
-
+// returns new generated order
 func NewOrder() m.Order {
 
 	// every order fields

@@ -19,7 +19,6 @@ type Order struct {
     SmID              *int64     `json:"sm_id"`
     DateCreated       *time.Time `json:"date_created,omitempty"`
     OofShard          *string    `json:"oof_shard"`
-
 }
 
 type Delivery struct {

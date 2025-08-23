@@ -4,11 +4,11 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
-	"fmt"
-	"log"
-
+	
 	kafka "github.com/segmentio/kafka-go"
-	model "github.com/hryak228pizza/wbTech.L0/internal/model"
+	"github.com/hryak228pizza/wbTech.L0/internal/model"
+	"github.com/hryak228pizza/wbTech.L0/internal/logger"
+	"go.uber.org/zap"
 )
 
 const (
@@ -28,38 +28,45 @@ func Consumer(db *sql.DB) {
 	})
 	defer r.Close()
 
-	fmt.Printf("Консьюмер подписан на топик '%s' в группе '%s'\n\n", topic, groupID)
-
-	// TODO:
-	// Logging with zap
+	logger.L().Info("consumer subscribe",
+		zap.String("topic", topic),
+		zap.String("group", groupID),
+	)
 
 	ctx := context.Background()
 	for {
 		m, err := r.ReadMessage(ctx)
 		if err != nil {
-			log.Fatalf("ошибка чтения из Kafka: %v\n", err)
+			logger.L().Error("kafka reading failed",
+				zap.String("topic", topic),
+				zap.String("group", groupID),
+			)
 		}
 
 		var order model.Order
 		if err := json.Unmarshal(m.Value, &order); err != nil {
-			log.Printf("ошибка парсинга JSON: %v\n", err)
+			logger.L().Error("json parsing failed",
+				zap.String("error", err.Error()),
+			)
 			continue
 		}
 
 		if err := saveOrder(db, &order); err != nil {
-			log.Printf("ошибка записи заказа в БД: %v\n", err)
+			logger.L().Error("db writing failed",
+				zap.String("error", err.Error()),
+			)
 		} else {
-			fmt.Printf("Заказ %s сохранён в БД\n", order.OrderUID)
+			logger.L().Info("order saved in db",
+				zap.String("order_id", order.OrderUID),
+			)
 		}
 	}
-
-	// ctx, final := context.WithCancel(context.Background())
-	// defer final()
-
-	// readMsg(ctx, r)
 }
 
+// saves order in DB
 func saveOrder(db *sql.DB, o *model.Order) error {
+
+	// begin transaction
 	tx, err := db.Begin()
 	if err != nil {
 		return err
@@ -69,11 +76,8 @@ func saveOrder(db *sql.DB, o *model.Order) error {
 			tx.Rollback()
 		}
 	}()
-	
-	// TODO:
-	// Transactions
 
-
+	// inserts:
 	// orders
 	_, err = tx.Exec(`INSERT INTO orders 
 		(order_uid, track_number, entry, locale, internal_signature, 
@@ -123,16 +127,4 @@ func saveOrder(db *sql.DB, o *model.Order) error {
 	}
 
 	return tx.Commit()
-}
-
-
-func readMsg(ctx context.Context, r *kafka.Reader) {
-	for {
-		m, err := r.ReadMessage(ctx)
-		if err != nil {
-			log.Fatalf("ошибка чтения из Kafka: %v\n", err)
-		}
-		fmt.Printf("Сообщение в топике %v, партиция %v, offset %v: \n\t%s %s\n\n",
-			m.Topic, m.Partition, m.Offset, string(m.Key), string(m.Value))
-	}
 }
