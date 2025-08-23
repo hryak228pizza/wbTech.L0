@@ -17,7 +17,10 @@ const (
 	groupID       = "new-orders-group"
 )
 
+// runs a consumer for reading all incoming orders with kafka
 func Consumer(db *sql.DB) {
+
+	// init reader
 	r := kafka.NewReader(kafka.ReaderConfig{
 		Brokers: []string{brokerAddress},
 		Topic:   topic,
@@ -26,6 +29,9 @@ func Consumer(db *sql.DB) {
 	defer r.Close()
 
 	fmt.Printf("Консьюмер подписан на топик '%s' в группе '%s'\n\n", topic, groupID)
+
+	// TODO:
+	// Logging with zap
 
 	ctx := context.Background()
 	for {
@@ -64,6 +70,10 @@ func saveOrder(db *sql.DB, o *model.Order) error {
 		}
 	}()
 	
+	// TODO:
+	// Transactions
+
+
 	// orders
 	_, err = tx.Exec(`INSERT INTO orders 
 		(order_uid, track_number, entry, locale, internal_signature, 

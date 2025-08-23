@@ -26,6 +26,9 @@ func Producer() {
 
 	c := time.Tick(5 * time.Second)
 
+	// TODO:
+	// Looging with zap
+
 	for range c {
 		order, err := json.Marshal(gen.NewOrder())
 		if err != nil { 

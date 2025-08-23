@@ -1,137 +1,18 @@
 package main
 
 import (
-    "database/sql"
-    "net/http"
-    "github.com/gorilla/mux"
-    "html/template"
-    _ "fmt"
-    "encoding/json"
-    _ "time"
-    _ "log"
-    _ "github.com/lib/pq"
-    //kafka "github.com/segmentio/kafka-go"
+	"database/sql"
+	"html/template"
+	"net/http"
 
-    zap "go.uber.org/zap"
-    model "github.com/hryak228pizza/wbTech.L0/internal/model"
+	"github.com/gorilla/mux"
+	_ "github.com/lib/pq"
+
+	c "github.com/hryak228pizza/wbTech.L0/internal/transport/kafka/consumer"
+	p "github.com/hryak228pizza/wbTech.L0/internal/transport/kafka/producer"
+	h "github.com/hryak228pizza/wbTech.L0/internal/transport/http"
+	"go.uber.org/zap"
 )
-
-
-type Handler struct {
-	DB   *sql.DB
-	Tmpl *template.Template
-}
-
-func (h *Handler) List(w http.ResponseWriter, r *http.Request) {
-
-    vars := mux.Vars(r)
-	id := vars["id"]
-
-    orderInfo := &model.Order{}
-
-    // order info parse
-    ordersRow := h.DB.QueryRow("SELECT * FROM orders WHERE order_uid = $1", id)
-    if err := ordersRow.Scan(&orderInfo.OrderUID, &orderInfo.TrackNumber, &orderInfo.Entry, &orderInfo.Locale, &orderInfo.InternalSignature, &orderInfo.CustomerID, &orderInfo.DeliveryService, &orderInfo.ShardKey, &orderInfo.SmID, &orderInfo.DateCreated, &orderInfo.OofShard); err != nil {
-        if err == sql.ErrNoRows {
-            w.WriteHeader(http.StatusNotFound) // 404
-            // w.Write([]byte(`{"error": "order not found"}`))
-            json.NewEncoder(w).Encode(map[string]string{"error": "order not found"})
-            return
-        } else {
-            w.WriteHeader(http.StatusInternalServerError) // 500
-            // w.Write([]byte(`{"error": "internal server error"}`))
-            json.NewEncoder(w).Encode(map[string]string{"error": "internal server error 102"})
-            return
-        }
-    }
-    
-    // delivery info parse
-    delivery := &model.Delivery{}
-    deliveryRow := h.DB.QueryRow("SELECT * FROM delivery WHERE order_uid = $1", id)
-    if err := deliveryRow.Scan(&delivery.OrderUID, &delivery.Name, &delivery.Phone, &delivery.Zip, &delivery.City, &delivery.Address, &delivery.Region, &delivery.Email); err != nil {
-        if err == sql.ErrNoRows {
-            w.WriteHeader(http.StatusNotFound) // 404
-            // w.Write([]byte(`{"error": "order not found"}`))
-            json.NewEncoder(w).Encode(map[string]string{"error": "order not found"})
-            return
-        } else {
-            w.WriteHeader(http.StatusInternalServerError) // 500
-            // w.Write([]byte(`{"error": "internal server error"}`))
-            json.NewEncoder(w).Encode(map[string]string{"error": "internal server error 119"})
-            return
-        }
-    }
-    orderInfo.Delivery = *delivery
-
-    // payment info parse
-    payment := &model.Payment{}
-    paymentRow := h.DB.QueryRow("SELECT * FROM payment WHERE transaction = $1", id)
-    if err := paymentRow.Scan(&payment.Transaction, &payment.RequestID, 
-        &payment.Currency, &payment.Provider, &payment.Amount, &payment.PaymentDT,
-        &payment.Bank, &payment.DeliveryCost, &payment.GoodsTotal, &payment.CustomFee,
-        ); err != nil {
-            if err == sql.ErrNoRows {
-                w.WriteHeader(http.StatusNotFound) // 404
-                // w.Write([]byte(`{"error": "order not found"}`))
-                json.NewEncoder(w).Encode(map[string]string{"error": "order not found"})
-                return
-            } else {
-                w.WriteHeader(http.StatusInternalServerError) // 500
-                // w.Write([]byte(`{"error": "internal server error"}`))
-                json.NewEncoder(w).Encode(map[string]string{"error": "internal server error 137"})
-                return
-            }
-    }
-    orderInfo.Payment = *payment
-
-    // items Parse
-    items := []*model.Item{}
-    itemsRows, err := h.DB.Query("SELECT * FROM items WHERE track_number = $1", orderInfo.TrackNumber)
-    if err != nil {
-        w.WriteHeader(http.StatusInternalServerError)
-        json.NewEncoder(w).Encode(map[string]string{"error": "internal server error 1"})
-        return
-    }
-    defer itemsRows.Close()
-    for itemsRows.Next() {
-        item := &model.Item{}
-        if err := itemsRows.Scan(&item.ID, &item.OrderUID, &item.ChrtID,
-                &item.TrackNumber, &item.Price, &item.Rid, &item.Name, &item.Sale, 
-                &item.Size, &item.TotalPrice, &item.NmID, &item.Brand, &item.Status,
-            ); err != nil {
-                if err == sql.ErrNoRows {
-                    //w.WriteHeader(http.StatusNotFound) // 404
-                    //json.NewEncoder(w).Encode(map[string]string{"error": "order not found"})
-                    //return
-                } else {
-                    w.WriteHeader(http.StatusInternalServerError) // 500
-                    json.NewEncoder(w).Encode(map[string]string{"error": "internal server error"})
-                    return
-                }
-        }
-        items = append(items, item)
-    }
-    orderInfo.Items = items    
-
-    w.Header().Set("Content-Type", "application/json")
-    json.NewEncoder(w).Encode(orderInfo)
-}
-
-func (h *Handler) Page(w http.ResponseWriter, r *http.Request) {
-
-    // looger init
-    logger := zap.NewExample()
-    defer logger.Sync()
-
-    err := h.Tmpl.ExecuteTemplate(w, "index.html", "")
-    if err != nil {
-        logger.Info("failed to execute html template",
-            zap.String("url", r.URL.Path),
-        )
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-}
 
 func main() {
 
@@ -146,7 +27,7 @@ func main() {
     }     
     defer db.Close()
         
-    handlers := &Handler{
+    handlers := &h.Handler{
 		DB:   db,
 		Tmpl: template.Must(template.ParseGlob("templates/*")),
 	}
@@ -161,6 +42,8 @@ func main() {
 		zap.Int("port", 8080),
 	)
 	//fmt.Println("starting server at :8080")
+    go c.Consumer(handlers.DB)
+    go p.Producer()
 	http.ListenAndServe(":8080", r)
 
     
