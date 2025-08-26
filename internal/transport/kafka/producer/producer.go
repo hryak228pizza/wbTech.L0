@@ -22,8 +22,9 @@ func Producer() {
 
 	// init writer
 	w := kafka.NewWriter(kafka.WriterConfig{
-		Brokers: []string{kafkaBrokerAddress},
-		Topic:   topic,
+		Brokers: 	  []string{kafkaBrokerAddress},
+		Topic:   	  topic,
+		RequiredAcks: -1,
 	})
 	defer w.Close()
 

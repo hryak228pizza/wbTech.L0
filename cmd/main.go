@@ -66,7 +66,7 @@ func main() {
 	)
 	
 	// run kafka consumer and producer with server
-    go c.Consumer(handlers.DB)
+    go c.Consumer(lru, handlers.DB)
     go p.Producer()
 	http.ListenAndServe(":8080", r)    
 }

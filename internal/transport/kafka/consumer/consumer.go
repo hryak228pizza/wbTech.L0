@@ -8,6 +8,7 @@ import (
 	kafka "github.com/segmentio/kafka-go"
 	"github.com/hryak228pizza/wbTech.L0/internal/model"
 	"github.com/hryak228pizza/wbTech.L0/internal/logger"
+	"github.com/hryak228pizza/wbTech.L0/pkg/cache"
 	"go.uber.org/zap"
 )
 
@@ -18,13 +19,14 @@ const (
 )
 
 // runs a consumer for reading all incoming orders with kafka
-func Consumer(db *sql.DB) {
+func Consumer(cache *cache.Cache, db *sql.DB) {
 
 	// init reader
 	r := kafka.NewReader(kafka.ReaderConfig{
 		Brokers: []string{brokerAddress},
 		Topic:   topic,
 		GroupID: groupID,
+		CommitInterval: 0,
 	})
 	defer r.Close()
 
@@ -35,11 +37,12 @@ func Consumer(db *sql.DB) {
 
 	ctx := context.Background()
 	for {
-		m, err := r.ReadMessage(ctx)
+		m, err := r.FetchMessage(ctx)
 		if err != nil {
-			logger.L().Error("kafka reading failed",
+			logger.L().Error("kafka fetch failed",
 				zap.String("topic", topic),
 				zap.String("group", groupID),
+				zap.String("error", err.Error()),
 			)
 		}
 
@@ -51,7 +54,7 @@ func Consumer(db *sql.DB) {
 			continue
 		}
 
-		if err := saveOrder(db, &order); err != nil {
+		if err := saveOrder(db, &order, cache); err != nil {
 			logger.L().Error("db writing failed",
 				zap.String("error", err.Error()),
 			)
@@ -60,11 +63,13 @@ func Consumer(db *sql.DB) {
 				zap.String("order_id", order.OrderUID),
 			)
 		}
+
+		
 	}
 }
 
 // saves order in DB
-func saveOrder(db *sql.DB, o *model.Order) error {
+func saveOrder(db *sql.DB, o *model.Order, cache *cache.Cache) error {
 
 	// begin transaction
 	tx, err := db.Begin()
@@ -125,6 +130,9 @@ func saveOrder(db *sql.DB, o *model.Order) error {
 			return err
 		}
 	}
+
+	// save order into cache
+	cache.SetOrder(o)
 
 	return tx.Commit()
 }
