@@ -1,3 +1,5 @@
+// возможно надо было сунуть в ./pkg/
+
 package generator
 
 import (
@@ -27,7 +29,7 @@ func NewOrder() m.Order {
 
 	// delivery fields
     name := "testName"
-    phone := "+123456789"
+    phone := "+72345678888"
     zip := "123456"
     city := "testCity"
     addr := "testAddr"
@@ -37,12 +39,12 @@ func NewOrder() m.Order {
     delivery := m.Delivery{
         OrderUID: orderId,
         Name:     &name,
-        Phone:    &phone,
+        Phone:    phone,
         Zip:      &zip,
         City:     &city,
         Address:  &addr,
         Region:   &region,
-        Email:    &email,
+        Email:    email,
     }
 
 	// payment fields

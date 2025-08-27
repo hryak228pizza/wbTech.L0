@@ -7,8 +7,8 @@ type Order struct {
     TrackNumber       *string    `json:"track_number"`
     Entry             *string    `json:"entry"`
     
-    Delivery          Delivery  `json:"delivery"`
-    Payment           Payment   `json:"payment"`
+    Delivery          Delivery   `json:"delivery"`
+    Payment           Payment    `json:"payment"`
     Items             []*Item    `json:"items"`
 
     Locale            *string    `json:"locale"`
@@ -24,12 +24,12 @@ type Order struct {
 type Delivery struct {
     OrderUID string   `json:"-"`
     Name     *string  `json:"name"`
-    Phone    *string  `json:"phone"`
+    Phone     string  `json:"phone" validate:"required,phone"` 
     Zip      *string  `json:"zip"`
     City     *string  `json:"city"`
     Address  *string  `json:"address"`
     Region   *string  `json:"region"`
-    Email    *string  `json:"email"`
+    Email     string  `json:"email" validate:"required,email"`
 }
 
 type Payment struct { 

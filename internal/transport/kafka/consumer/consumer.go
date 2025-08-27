@@ -4,11 +4,12 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
-	
-	kafka "github.com/segmentio/kafka-go"
-	"github.com/hryak228pizza/wbTech.L0/internal/model"
+
 	"github.com/hryak228pizza/wbTech.L0/internal/logger"
+	"github.com/hryak228pizza/wbTech.L0/internal/model"
 	"github.com/hryak228pizza/wbTech.L0/pkg/cache"
+	"github.com/hryak228pizza/wbTech.L0/pkg/validation"
+	kafka "github.com/segmentio/kafka-go"
 	"go.uber.org/zap"
 )
 
@@ -35,8 +36,12 @@ func Consumer(cache *cache.Cache, db *sql.DB) {
 		zap.String("group", groupID),
 	)
 
+	// init validator
+	validate := validation.NewValidator()
+
 	ctx := context.Background()
 	for {
+		// fetch message
 		m, err := r.FetchMessage(ctx)
 		if err != nil {
 			logger.L().Error("kafka fetch failed",
@@ -46,6 +51,7 @@ func Consumer(cache *cache.Cache, db *sql.DB) {
 			)
 		}
 
+		// json deserialization
 		var order model.Order
 		if err := json.Unmarshal(m.Value, &order); err != nil {
 			logger.L().Error("json parsing failed",
@@ -54,6 +60,16 @@ func Consumer(cache *cache.Cache, db *sql.DB) {
 			continue
 		}
 
+		// validate order data
+		if err := validate.ValidateOrder(&order); err != nil {
+			logger.L().Error("validation failed",
+				zap.String("order_uid", order.OrderUID),
+				zap.Error(err),
+			)
+			continue
+		}
+
+		// save order in database
 		if err := saveOrder(db, &order, cache); err != nil {
 			logger.L().Error("db writing failed",
 				zap.String("error", err.Error()),
@@ -64,7 +80,7 @@ func Consumer(cache *cache.Cache, db *sql.DB) {
 			)
 		}
 
-		
+
 	}
 }
 
