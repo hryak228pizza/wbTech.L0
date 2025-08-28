@@ -30,7 +30,8 @@ type Handler struct {
 // @Failure 404 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Router /orders/{id} [get]
-// // formatting all order data to json
+//
+// formatting all order data to json
 func (h *Handler) List(w http.ResponseWriter, r *http.Request) {
 
 	// parse query param
@@ -146,7 +147,8 @@ func (h *Handler) List(w http.ResponseWriter, r *http.Request) {
 // @Produce  html
 // @Success 200 {string} string "HTML content"
 // @Router / [get]
-// // show a web page to user
+//
+// show a web page to user
 func (h *Handler) Page(w http.ResponseWriter, r *http.Request) {
 
     // looger init

@@ -22,8 +22,8 @@ func NewCache(size int, db *sql.DB) (*Cache, error) {
 	}
 	c := &Cache{ lru: cache }
 
-	// get last 5 orders 
-	lastOrders, err := db.Query("SELECT * FROM orders ORDER BY date_created DESC LIMIT 5")
+	// get last N orders 
+	lastOrders, err := db.Query("SELECT * FROM orders ORDER BY date_created DESC LIMIT $1", size)
 	if err != nil {
 		return nil, err
 	}
