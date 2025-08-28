@@ -4,6 +4,8 @@ import (
 	"database/sql"
 	"html/template"
 	"net/http"
+	"os"
+	"strconv"
 
 	"github.com/gorilla/mux"
 	_ "github.com/lib/pq"
@@ -16,6 +18,7 @@ import (
 	"github.com/swaggo/http-swagger"
 	"github.com/hryak228pizza/wbTech.L0/pkg/cache"
 	"go.uber.org/zap"
+	"github.com/joho/godotenv"
 )
 
 //	@title			Order service API
@@ -31,16 +34,28 @@ func main() {
 	logger.Logger()
     defer logger.L().Sync()
 
+	// load .env variables
+	err := godotenv.Load()
+	if err != nil {
+		logger.L().Fatal("Error loading .env file")
+	}
+
 	// open database
-    dsn := "user=postgres password=123 dbname=postgres sslmode=disable"
+    dsn := os.Getenv("DB_CONN_STR")
     db, err := sql.Open("postgres", dsn)
     if err != nil { 
-        logger.L().Info("failed to open database")
+        logger.L().Fatal("failed to open database")
     }     
     defer db.Close()
 
 	// create cache
-	lru, err := cache.NewCache(5, db)
+	size, err := strconv.Atoi(os.Getenv("CACHE_SIZE"))
+	if err != nil {
+		logger.L().Fatal("failed to parse cachesize from .env", 
+			zap.String("error", err.Error()),
+		)
+	}
+	lru, err := cache.NewCache(size, db)
 	if err != nil {
 		logger.L().Fatal("failed to create cache", 
 			zap.String("error", err.Error()),
