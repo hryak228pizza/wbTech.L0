@@ -3,7 +3,7 @@
 ## Запуск
 1. Скопируйте репозиторий
 ```shell
-git clone [https://github.com/](https://github.com/hryak228pizza/wbTech.L0)
+git clone https://github.com/hryak228pizza/wbTech.L0
 ```
 2. В корне проекта у Вас должен быть файл .env. Установите в него необходимые для Вас параметры. Используйте .env.template как пример
 3. Запустите контейнер
