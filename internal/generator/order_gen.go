@@ -38,12 +38,12 @@ func NewOrder() m.Order {
 
     delivery := m.Delivery{
         OrderUID: orderId,
-        Name:     &name,
+        Name:     name,
         Phone:    phone,
-        Zip:      &zip,
-        City:     &city,
-        Address:  &addr,
-        Region:   &region,
+        Zip:      zip,
+        City:     city,
+        Address:  addr,
+        Region:   region,
         Email:    email,
     }
 

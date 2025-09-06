@@ -22,14 +22,14 @@ type Order struct {
 }
 
 type Delivery struct {
-    OrderUID string   `json:"-"`
-    Name     *string  `json:"name"`
-    Phone     string  `json:"phone" validate:"required,phone"` 
-    Zip      *string  `json:"zip"`
-    City     *string  `json:"city"`
-    Address  *string  `json:"address"`
-    Region   *string  `json:"region"`
-    Email     string  `json:"email" validate:"required,email"`
+    OrderUID  string  `json:"-"`
+    Name      string  `json:"name"     validate:"required,name"`
+    Phone     string  `json:"phone"    validate:"required,phone"` 
+    Zip       string  `json:"zip"      validate:"required,zip"`
+    City      string  `json:"city"     validate:"required,city"`
+    Address   string  `json:"address"  validate:"required,address"`
+    Region    string  `json:"region"   validate:"required,region"`
+    Email     string  `json:"email"    validate:"required,email"`
 }
 
 type Payment struct { 
