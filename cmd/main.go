@@ -4,8 +4,6 @@ import (
 	"database/sql"
 	"html/template"
 	"net/http"
-	"os"
-	"strconv"
 
 	"github.com/gorilla/mux"
 	_ "github.com/lib/pq"
@@ -16,7 +14,7 @@ import (
 	c "github.com/hryak228pizza/wbTech.L0/internal/transport/kafka/consumer"
 	p "github.com/hryak228pizza/wbTech.L0/internal/transport/kafka/producer"
 	"github.com/hryak228pizza/wbTech.L0/pkg/cache"
-	"github.com/joho/godotenv"
+	"github.com/hryak228pizza/wbTech.L0/internal/config"
 	httpSwagger "github.com/swaggo/http-swagger"
 	"go.uber.org/zap"
 )
@@ -34,28 +32,18 @@ func main() {
 	logger.Logger()
 	defer logger.L().Sync()
 
-	// load .env variables
-	err := godotenv.Load()
-	if err != nil {
-		logger.L().Fatal("Error loading .env file")
-	}
+	// load app config
+	cfg := config.LoadCfg()
 
-	// open database
-	dsn := os.Getenv("DB_CONN_STR")
-	db, err := sql.Open("postgres", dsn)
+	// open database	
+	db, err := sql.Open("postgres", cfg.Dsn)
 	if err != nil {
 		logger.L().Fatal("failed to open database")
 	}
 	defer db.Close()
 
 	// create cache
-	size, err := strconv.Atoi(os.Getenv("CACHE_SIZE"))
-	if err != nil {
-		logger.L().Fatal("failed to parse cachesize from .env",
-			zap.String("error", err.Error()),
-		)
-	}
-	lru, err := cache.NewCache(size, db)
+	lru, err := cache.NewCache(cfg.CacheSize, db)
 	if err != nil {
 		logger.L().Fatal("failed to create cache",
 			zap.String("error", err.Error()),
@@ -77,11 +65,11 @@ func main() {
 
 	logger.L().Info("starting server",
 		zap.String("host", "localhost"),
-		zap.Int("port", 8080),
+		zap.String("port", cfg.HttpPort),
 	)
 
 	// run kafka consumer and producer with server
 	go c.Consumer(lru, handlers.DB)
 	go p.Producer()
-	http.ListenAndServe(":8080", r)
+	http.ListenAndServe(cfg.HttpPort, r)
 }
