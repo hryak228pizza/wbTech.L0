@@ -12,13 +12,13 @@ import (
 
 	"github.com/hryak228pizza/wbTech.L0/internal/logger"
 	h "github.com/hryak228pizza/wbTech.L0/internal/transport/handler"
+	_ "github.com/hryak228pizza/wbTech.L0/internal/transport/handler/docs"
 	c "github.com/hryak228pizza/wbTech.L0/internal/transport/kafka/consumer"
 	p "github.com/hryak228pizza/wbTech.L0/internal/transport/kafka/producer"
-    _ "github.com/hryak228pizza/wbTech.L0/internal/transport/handler/docs"
-	"github.com/swaggo/http-swagger"
 	"github.com/hryak228pizza/wbTech.L0/pkg/cache"
-	"go.uber.org/zap"
 	"github.com/joho/godotenv"
+	httpSwagger "github.com/swaggo/http-swagger"
+	"go.uber.org/zap"
 )
 
 //	@title			Order service API
@@ -29,10 +29,10 @@ import (
 //	@BasePath	/
 
 func main() {
-	
+
 	// first initialization of logger
 	logger.Logger()
-    defer logger.L().Sync()
+	defer logger.L().Sync()
 
 	// load .env variables
 	err := godotenv.Load()
@@ -41,47 +41,47 @@ func main() {
 	}
 
 	// open database
-    dsn := os.Getenv("DB_CONN_STR")
-    db, err := sql.Open("postgres", dsn)
-    if err != nil { 
-        logger.L().Fatal("failed to open database")
-    }     
-    defer db.Close()
+	dsn := os.Getenv("DB_CONN_STR")
+	db, err := sql.Open("postgres", dsn)
+	if err != nil {
+		logger.L().Fatal("failed to open database")
+	}
+	defer db.Close()
 
 	// create cache
 	size, err := strconv.Atoi(os.Getenv("CACHE_SIZE"))
 	if err != nil {
-		logger.L().Fatal("failed to parse cachesize from .env", 
+		logger.L().Fatal("failed to parse cachesize from .env",
 			zap.String("error", err.Error()),
 		)
 	}
 	lru, err := cache.NewCache(size, db)
 	if err != nil {
-		logger.L().Fatal("failed to create cache", 
+		logger.L().Fatal("failed to create cache",
 			zap.String("error", err.Error()),
 		)
 	}
-        
+
 	// handlers setup
-    handlers := &h.Handler{
+	handlers := &h.Handler{
 		DB:    db,
 		Tmpl:  template.Must(template.ParseGlob("templates/*")),
 		Cache: lru,
 	}
 
-	// create router 
-    r := mux.NewRouter()
-    r.HandleFunc("/", handlers.Page).Methods("GET")
-	r.HandleFunc("/order/{id}", handlers.List).Methods("GET")	
+	// create router
+	r := mux.NewRouter()
+	r.HandleFunc("/", handlers.Page).Methods("GET")
+	r.HandleFunc("/order/{id}", handlers.List).Methods("GET")
 	r.PathPrefix("/swagger/").Handler(httpSwagger.WrapHandler)
 
-    logger.L().Info("starting server",
+	logger.L().Info("starting server",
 		zap.String("host", "localhost"),
 		zap.Int("port", 8080),
 	)
-	
+
 	// run kafka consumer and producer with server
-    go c.Consumer(lru, handlers.DB)
-    go p.Producer()
-	http.ListenAndServe(":8080", r)    
+	go c.Consumer(lru, handlers.DB)
+	go p.Producer()
+	http.ListenAndServe(":8080", r)
 }

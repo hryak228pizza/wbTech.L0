@@ -89,4 +89,3 @@ func TestValidateOrder_InvalidEmail(t *testing.T) {
 		t.Error("expect invalid email, got valid")
 	}
 }
-

@@ -8,8 +8,8 @@ import (
 var logger *zap.Logger
 
 // logger ctor
-func Logger(){
-    logger, _ = zap.NewProduction()
+func Logger() {
+	logger, _ = zap.NewProduction()
 }
 
 // return global logger

@@ -1,14 +1,14 @@
 package producer
 
 import (
-	"encoding/json"
-	"context"
-	"time"
 	"bytes"
+	"context"
+	"encoding/json"
+	"time"
 
-	kafka "github.com/segmentio/kafka-go"
 	"github.com/hryak228pizza/wbTech.L0/internal/generator"
 	"github.com/hryak228pizza/wbTech.L0/internal/logger"
+	kafka "github.com/segmentio/kafka-go"
 	"go.uber.org/zap"
 )
 
@@ -22,8 +22,8 @@ func Producer() {
 
 	// init writer
 	w := kafka.NewWriter(kafka.WriterConfig{
-		Brokers: 	  []string{kafkaBrokerAddress},
-		Topic:   	  topic,
+		Brokers:      []string{kafkaBrokerAddress},
+		Topic:        topic,
 		RequiredAcks: -1,
 	})
 	defer w.Close()
@@ -34,8 +34,8 @@ func Producer() {
 	// sending msg every 5sec
 	for range c {
 		order, err := json.Marshal(generator.NewOrder())
-		if err != nil { 
-			logger.L().Error("serialization failed", 
+		if err != nil {
+			logger.L().Error("serialization failed",
 				zap.String("error", err.Error()),
 			)
 			return
@@ -54,14 +54,14 @@ func sendMsg(w *kafka.Writer, m []byte) {
 
 	err := w.WriteMessages(context.Background(), msg)
 	if err != nil {
-		logger.L().Error("kafka message write failed", 
+		logger.L().Error("kafka message write failed",
 			zap.String("message", string(msg.Value)),
 			zap.String("error", err.Error()),
 		)
 	} else {
 		// make readable json
 		var prettyJSON bytes.Buffer
-    	err := json.Indent(&prettyJSON, m, "", "  ")
+		err := json.Indent(&prettyJSON, m, "", "  ")
 		if err != nil {
 			logger.L().Error("json indent failed",
 				zap.String("error", err.Error()),

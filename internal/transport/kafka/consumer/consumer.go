@@ -24,9 +24,9 @@ func Consumer(cache *cache.Cache, db *sql.DB) {
 
 	// init reader
 	r := kafka.NewReader(kafka.ReaderConfig{
-		Brokers: []string{brokerAddress},
-		Topic:   topic,
-		GroupID: groupID,
+		Brokers:        []string{brokerAddress},
+		Topic:          topic,
+		GroupID:        groupID,
 		CommitInterval: 0,
 	})
 	defer r.Close()
@@ -79,7 +79,6 @@ func Consumer(cache *cache.Cache, db *sql.DB) {
 				zap.String("order_id", order.OrderUID),
 			)
 		}
-
 
 	}
 }
