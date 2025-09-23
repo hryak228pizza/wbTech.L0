@@ -120,14 +120,10 @@ func (h *Handler) List(w http.ResponseWriter, r *http.Request) {
 				&item.TrackNumber, &item.Price, &item.Rid, &item.Name, &item.Sale,
 				&item.Size, &item.TotalPrice, &item.NmID, &item.Brand, &item.Status,
 			); err != nil {
-				if err == sql.ErrNoRows {
-					// no items?
-				} else {
-					// return code 500
-					w.WriteHeader(http.StatusInternalServerError)
-					json.NewEncoder(w).Encode(map[string]string{"error": "internal server error"})
-					return
-				}
+				// return code 500
+				w.WriteHeader(http.StatusInternalServerError)
+				json.NewEncoder(w).Encode(map[string]string{"error": "internal server error"})
+				return
 			}
 			items = append(items, item)
 		}
