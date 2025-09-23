@@ -41,3 +41,6 @@ go run ./cmd/main.go
 - __./pkg/cache__ - реализация кеша при помощи github.com/hashicorp/golang-lru.
 - __./pkg/validation__ - реализация валидатора данных при помощи github.com/go-playground/validator.
 - __./templates__ - шаблон для веб-страниц.
+
+## Что изменено?
+- Прогнал проект через goimports
