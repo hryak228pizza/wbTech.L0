@@ -1,11 +1,11 @@
 package cache
 
 import (
-	"database/sql"
-
-	_ "github.com/lib/pq"
+	"context"
 
 	lru "github.com/hashicorp/golang-lru/v2"
+	sqlc "github.com/hryak228pizza/wbTech.L0/internal/infrastructure/db/gen"
+	"github.com/hryak228pizza/wbTech.L0/internal/infrastructure/db/repository"
 	"github.com/hryak228pizza/wbTech.L0/internal/model"
 )
 
@@ -14,7 +14,7 @@ type Cache struct {
 }
 
 // NewCache creates new cache size of N
-func NewCache(size int, db *sql.DB) (*Cache, error) {
+func NewCache(size int, dbQueries *sqlc.Queries) (*Cache, error) {
 
 	// create empty map
 	cache, err := lru.New[string, *model.Order](size)
@@ -23,75 +23,39 @@ func NewCache(size int, db *sql.DB) (*Cache, error) {
 	}
 	c := &Cache{lru: cache}
 
+	ctx := context.Background()
+
 	// get last N orders
-	lastOrders, err := db.Query("SELECT * FROM orders ORDER BY date_created DESC LIMIT $1", size)
+	lastOrders, err := dbQueries.GetLastOrders(ctx, int32(size))
 	if err != nil {
 		return nil, err
 	}
-	defer lastOrders.Close()
 
-	for lastOrders.Next() {
-		o := &model.Order{}
-
-		// parse order info
-		if err := lastOrders.Scan(
-			&o.OrderUID, &o.TrackNumber, &o.Entry,
-			&o.Locale, &o.InternalSignature, &o.CustomerID,
-			&o.DeliveryService, &o.ShardKey, &o.SmID,
-			&o.DateCreated, &o.OofShard,
-		); err != nil {
-			return nil, err
-		}
+	for _, elem := range lastOrders {
 
 		// parse delivery
-		if err := db.QueryRow(`
-            SELECT name, phone, zip, city, address, region, email
-            FROM delivery WHERE order_uid = $1
-        `, o.OrderUID).Scan(
-			&o.Delivery.Name, &o.Delivery.Phone, &o.Delivery.Zip,
-			&o.Delivery.City, &o.Delivery.Address, &o.Delivery.Region, &o.Delivery.Email,
-		); err != nil {
-			return nil, err
-		}
-
-		// parse payment
-		if err := db.QueryRow(`
-            SELECT transaction, request_id, currency, provider, amount,
-                   payment_dt, bank, delivery_cost, goods_total, custom_fee
-            FROM payment WHERE transaction = $1
-        `, o.OrderUID).Scan(
-			&o.Payment.Transaction, &o.Payment.RequestID, &o.Payment.Currency,
-			&o.Payment.Provider, &o.Payment.Amount, &o.Payment.PaymentDT,
-			&o.Payment.Bank, &o.Payment.DeliveryCost, &o.Payment.GoodsTotal, &o.Payment.CustomFee,
-		); err != nil {
-			return nil, err
-		}
-
-		// parse items
-		itemRows, err := db.Query(`
-            SELECT id, chrt_id, track_number, price, rid, name, sale, size,
-                   total_price, nm_id, brand, status
-            FROM items WHERE order_uid = $1
-        `, o.OrderUID)
+		delivery, err := dbQueries.GetDeliveryByOrderUID(ctx, elem.OrderUid)
 		if err != nil {
 			return nil, err
 		}
 
-		for itemRows.Next() {
-			it := &model.Item{OrderUID: o.OrderUID}
-			if err := itemRows.Scan(
-				&it.ID, &it.ChrtID, &it.TrackNumber, &it.Price,
-				&it.Rid, &it.Name, &it.Sale, &it.Size,
-				&it.TotalPrice, &it.NmID, &it.Brand, &it.Status,
-			); err != nil {
-				return nil, err
-			}
-			o.Items = append(o.Items, it)
+		// parse payment
+		payment, err := dbQueries.GetPaymentByTransaction(ctx, elem.OrderUid)
+		if err != nil {
+			return nil, err
 		}
-		itemRows.Close()
+
+		// parse items
+		items, err := dbQueries.GetItemsByTrackNumber(ctx, elem.TrackNumber)
+		if err != nil {
+			return nil, err
+		}
+
+		// create full order from piecies
+		order := repository.MapToOrder(elem, delivery, payment, items)
 
 		// save order to cache
-		c.SetOrder(o)
+		c.SetOrder(order)
 	}
 
 	return c, nil

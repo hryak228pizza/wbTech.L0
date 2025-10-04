@@ -9,15 +9,17 @@ import (
 	_ "github.com/lib/pq"
 
 	"github.com/gorilla/mux"
+	sqlc "github.com/hryak228pizza/wbTech.L0/internal/infrastructure/db/gen"
 	"github.com/hryak228pizza/wbTech.L0/internal/model"
 	"github.com/hryak228pizza/wbTech.L0/pkg/cache"
 	"go.uber.org/zap"
 )
 
 type Handler struct {
-	DB    *sql.DB
-	Tmpl  *template.Template
-	Cache *cache.Cache
+	DB        *sql.DB
+	DbQueries *sqlc.Queries
+	Tmpl      *template.Template
+	Cache     *cache.Cache
 }
 
 // List godoc

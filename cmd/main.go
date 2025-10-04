@@ -8,13 +8,14 @@ import (
 	"github.com/gorilla/mux"
 	_ "github.com/lib/pq"
 
+	"github.com/hryak228pizza/wbTech.L0/internal/config"
+	sqlc "github.com/hryak228pizza/wbTech.L0/internal/infrastructure/db/gen"
 	"github.com/hryak228pizza/wbTech.L0/internal/logger"
 	h "github.com/hryak228pizza/wbTech.L0/internal/transport/handler"
 	_ "github.com/hryak228pizza/wbTech.L0/internal/transport/handler/docs"
 	c "github.com/hryak228pizza/wbTech.L0/internal/transport/kafka/consumer"
 	p "github.com/hryak228pizza/wbTech.L0/internal/transport/kafka/producer"
 	"github.com/hryak228pizza/wbTech.L0/pkg/cache"
-	"github.com/hryak228pizza/wbTech.L0/internal/config"
 	httpSwagger "github.com/swaggo/http-swagger"
 	"go.uber.org/zap"
 )
@@ -35,15 +36,18 @@ func main() {
 	// load app config
 	cfg := config.LoadCfg()
 
-	// open database	
+	// open database
 	db, err := sql.Open("postgres", cfg.Dsn)
 	if err != nil {
 		logger.L().Fatal("failed to open database")
 	}
 	defer db.Close()
 
+	// var for db queries
+	dbQueries := sqlc.New(db)
+
 	// create cache
-	lru, err := cache.NewCache(cfg.CacheSize, db)
+	lru, err := cache.NewCache(cfg.CacheSize, dbQueries)
 	if err != nil {
 		logger.L().Fatal("failed to create cache",
 			zap.String("error", err.Error()),
@@ -52,9 +56,10 @@ func main() {
 
 	// handlers setup
 	handlers := &h.Handler{
-		DB:    db,
-		Tmpl:  template.Must(template.ParseGlob("templates/*")),
-		Cache: lru,
+		DB:        db,
+		DbQueries: dbQueries,
+		Tmpl:      template.Must(template.ParseGlob("templates/*")),
+		Cache:     lru,
 	}
 
 	// create router

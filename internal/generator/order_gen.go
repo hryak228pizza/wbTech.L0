@@ -89,7 +89,7 @@ func NewOrder() m.Order {
 			ID:          i + 1,
 			OrderUID:    orderId,
 			ChrtID:      &chrt,
-			TrackNumber: &track,
+			TrackNumber: track,
 			Price:       &price,
 			Rid:         &rid,
 			Name:        &itemName,
@@ -104,7 +104,7 @@ func NewOrder() m.Order {
 
 	return m.Order{
 		OrderUID:          orderId,
-		TrackNumber:       &track,
+		TrackNumber:       track,
 		Entry:             &entry,
 		Delivery:          delivery,
 		Payment:           payment,
