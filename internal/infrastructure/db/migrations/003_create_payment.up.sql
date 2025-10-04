@@ -1,4 +1,4 @@
-CREATE TABLE IF EXISTS payment (
+CREATE TABLE IF NOT EXISTS payment (
     transaction VARCHAR(50) PRIMARY KEY REFERENCES orders(order_uid),
     request_id VARCHAR(100),
     currency VARCHAR(10),
@@ -10,5 +10,3 @@ CREATE TABLE IF EXISTS payment (
     goods_total INTEGER,
     custom_fee INTEGER
 );
-
-DROP TABLE IF EXISTS payment;

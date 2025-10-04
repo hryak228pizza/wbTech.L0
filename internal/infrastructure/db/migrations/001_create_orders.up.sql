@@ -1,6 +1,6 @@
 CREATE TABLE IF NOT EXISTS orders (
     order_uid VARCHAR(50) PRIMARY KEY,
-    track_number VARCHAR(50),
+    track_number VARCHAR(50) NOT NULL,
     entry VARCHAR(10),
     locale VARCHAR(10),
     internal_signature VARCHAR(100),
@@ -11,5 +11,3 @@ CREATE TABLE IF NOT EXISTS orders (
     date_created TIMESTAMP WITH TIME ZONE,
     oof_shard VARCHAR(10)
 );
-
-DROP TABLE IF EXISTS orders;

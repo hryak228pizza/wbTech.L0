@@ -1,4 +1,4 @@
--- name: GetOrderByUID :one
+-- name: GetLastOrders :many
 SELECT 
     order_uid,
     track_number,
@@ -12,4 +12,5 @@ SELECT
     date_created,
     oof_shard
 FROM orders
-WHERE order_uid = $1;
+ORDER BY date_created DESC
+LIMIT $1;
