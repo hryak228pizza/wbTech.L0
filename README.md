@@ -9,6 +9,7 @@ git clone github.com/hryak228pizza/wbTech.L0
 3. Запустите контейнер
 ```shell
 docker compose up -d
+или docker compose up -d --build
 ```
 4. Находясь в корневой папке проекта выполните
 ```shell
