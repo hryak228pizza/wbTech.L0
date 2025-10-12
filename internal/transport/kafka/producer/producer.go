@@ -6,27 +6,28 @@ import (
 	"encoding/json"
 	"time"
 
+	"github.com/hryak228pizza/wbTech.L0/internal/config"
 	"github.com/hryak228pizza/wbTech.L0/internal/generator"
 	"github.com/hryak228pizza/wbTech.L0/internal/logger"
 	kafka "github.com/segmentio/kafka-go"
 	"go.uber.org/zap"
 )
 
-const (
-	topic              = "new-orders-topic"
-	kafkaBrokerAddress = "localhost:9093"
-)
-
 // runs a producer for simulate new orders with kafka
-func Producer() {
+func Producer(cfg *config.Config) {
 
 	// init writer
-	w := kafka.NewWriter(kafka.WriterConfig{
-		Brokers:      []string{kafkaBrokerAddress},
-		Topic:        topic,
+	w := &kafka.Writer{
+		Addr: 		kafka.TCP(cfg.KafkaBroker), 
+		Topic:      cfg.KafkaTopic,
 		RequiredAcks: -1,
-	})
+		Balancer:   &kafka.LeastBytes{},
+    }
 	defer w.Close()
+
+	logger.L().Info("producer subscribe",
+		zap.String("topic", w.Topic),
+	)
 
 	// ticker for generator
 	c := time.Tick(5 * time.Second)

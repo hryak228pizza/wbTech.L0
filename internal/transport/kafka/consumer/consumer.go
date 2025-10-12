@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 
+	"github.com/hryak228pizza/wbTech.L0/internal/config"
 	"github.com/hryak228pizza/wbTech.L0/internal/logger"
 	"github.com/hryak228pizza/wbTech.L0/internal/model"
 	"github.com/hryak228pizza/wbTech.L0/pkg/cache"
@@ -13,42 +14,40 @@ import (
 	"go.uber.org/zap"
 )
 
-const (
-	topic         = "new-orders-topic"
-	brokerAddress = "localhost:9093"
-	groupID       = "new-orders-group"
-)
-
 // runs a consumer for reading all incoming orders with kafka
-func Consumer(cache *cache.Cache, db *sql.DB) {
+func Consumer(cfg *config.Config, cache *cache.Cache, db *sql.DB) {
 
 	// init reader
 	r := kafka.NewReader(kafka.ReaderConfig{
-		Brokers:        []string{brokerAddress},
-		Topic:          topic,
-		GroupID:        groupID,
+		Brokers:        []string{cfg.KafkaBroker},
+		Topic:          cfg.KafkaTopic,
+		GroupID:        cfg.KafkaGroup,
 		CommitInterval: 0,
 	})
 	defer r.Close()
 
 	logger.L().Info("consumer subscribe",
-		zap.String("topic", topic),
-		zap.String("group", groupID),
+		zap.String("broker", r.Config().Brokers[0]),
+		zap.String("topic", r.Config().Topic),
+		zap.String("group", r.Config().GroupID),
 	)
 
 	// init validator
 	validate := validation.NewValidator()
-
-	ctx := context.Background()
+	
 	for {
+		ctx := context.Background()
+
 		// fetch message
 		m, err := r.FetchMessage(ctx)
+		//cancel()
 		if err != nil {
 			logger.L().Error("kafka fetch failed",
-				zap.String("topic", topic),
-				zap.String("group", groupID),
+				zap.String("topic", r.Config().Topic),
+				zap.String("group", r.Config().GroupID),
 				zap.String("error", err.Error()),
 			)
+			continue
 		}
 
 		// json deserialization
@@ -74,12 +73,18 @@ func Consumer(cache *cache.Cache, db *sql.DB) {
 			logger.L().Error("db writing failed",
 				zap.String("error", err.Error()),
 			)
+			continue
+		} 
+		
+		if err := r.CommitMessages(ctx, m); err != nil {
+			logger.L().Error("commit failed", 
+				zap.Error(err),
+			)
 		} else {
-			logger.L().Info("order saved in db",
+			logger.L().Info("order saved and committed", 
 				zap.String("order_id", order.OrderUID),
 			)
 		}
-
 	}
 }
 
