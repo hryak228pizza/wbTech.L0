@@ -37,12 +37,21 @@ func main() {
 	cfg := config.LoadCfg()
 
 	// open database
-	db, err := sql.Open("postgres", cfg.Dsn)
+	var db *sql.DB
+	var err error
+	for i:=0; i<10; i++ {
+		db, err = sql.Open("postgres", cfg.Dsn)
+		if err == nil {
+			err = db.Ping()
+		}
+		if err == nil {
+			break
+		}
+	}	
 	if err != nil {
 		logger.L().Fatal("failed to open database")
 	}
-	defer db.Close()
-
+	
 	// var for db queries
 	dbQueries := sqlc.New(db)
 
@@ -74,7 +83,7 @@ func main() {
 	)
 
 	// run kafka consumer and producer with server
-	go c.Consumer(lru, handlers.DB)
-	go p.Producer()
+	go c.Consumer(cfg, lru, handlers.DB)
+	go p.Producer(cfg)
 	http.ListenAndServe(cfg.HttpPort, r)
 }
