@@ -11,12 +11,16 @@ import (
 )
 
 type Config struct {
-	DBUser string
+	DBUser  string
 	DBPassw string
-	DBName string
-	Dsn string
+	DBName  string
+	Dsn     string
 
-	HttpPort string
+	KafkaBroker string
+	KafkaTopic  string
+	KafkaGroup  string
+
+	HttpPort  string
 	CacheSize int
 }
 
@@ -31,10 +35,12 @@ func LoadCfg() *Config {
 	// getting .env variables
 	dbUser := os.Getenv("POSTGRES_USER")
 	dbPassw := os.Getenv("POSTGRES_PASSWORD")
-	dbName := os.Getenv("POSTGRES_DB")	
+	dbName := os.Getenv("POSTGRES_DB")
+	dbHost := os.Getenv("POSTGRES_HOST")
+	dbPort := os.Getenv("POSTGRES_PORT")
 
 	httpPort := os.Getenv("HTTP_PORT")
-	cacheSize, err := strconv.Atoi(os.Getenv("CAHCE_SIZE"))
+	cacheSize, err := strconv.Atoi(os.Getenv("CACHE_SIZE"))
 	if err != nil {
 		logger.L().Fatal("failed to parse cachesize from .env",
 			zap.String("error", err.Error()),
@@ -42,15 +48,22 @@ func LoadCfg() *Config {
 	}
 
 	// create dsn string
-	dsn := fmt.Sprintf("user=%s password=%s dbname=%s sslmode=disable", dbUser, dbPassw, dbName)
+	dsn := fmt.Sprintf(
+		"user=%s password=%s host=%s port=%s dbname=%s sslmode=disable",
+		dbUser, dbPassw, dbHost, dbPort, dbName,
+	)
 
 	return &Config{
-		DBUser: dbUser,
+		DBUser:  dbUser,
 		DBPassw: dbPassw,
-		DBName: dbName,
-		Dsn: dsn,
+		DBName:  dbName,
+		Dsn:     dsn,
 
-		HttpPort: httpPort,
+		KafkaBroker: os.Getenv("KAFKA_BROKER"),
+		KafkaTopic:  os.Getenv("KAFKA_TOPIC"),
+		KafkaGroup:  os.Getenv("KAFKA_GROUP"),
+
+		HttpPort:  httpPort,
 		CacheSize: cacheSize,
 	}
 }
