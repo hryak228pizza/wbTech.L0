@@ -16,7 +16,7 @@ import (
 )
 
 // runs a consumer for reading all incoming orders with kafka
-func Consumer(cfg *config.Config, cache *cache.Cache, db *sql.DB) {
+func Consumer(ctx context.Context, cfg *config.Config, cache *cache.Cache, db *sql.DB) {
 
 	// init reader
 	r := kafka.NewReader(kafka.ReaderConfig{
@@ -37,11 +37,23 @@ func Consumer(cfg *config.Config, cache *cache.Cache, db *sql.DB) {
 	validate := validation.NewValidator()
 
 	for {
-		ctx := context.Background()
+		// check context cancel
+		select {
+		case <-ctx.Done():
+			logger.L().Info("consumer context canceled, exiting loop")
+			return
+		default:
+		}
+
+		innerCtx := context.Background()
 
 		// fetch message
-		m, err := r.FetchMessage(ctx)
+		m, err := r.FetchMessage(innerCtx)
 		if err != nil {
+			if ctx.Err() != nil {
+				logger.L().Info("fetch aborted by context", zap.Error(err))
+				return
+			}
 			logger.L().Error("kafka fetch failed",
 				zap.String("topic", r.Config().Topic),
 				zap.String("group", r.Config().GroupID),

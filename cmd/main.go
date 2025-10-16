@@ -1,9 +1,15 @@
 package main
 
 import (
+	"context"
 	"database/sql"
 	"html/template"
 	"net/http"
+	"os"
+	"os/signal"
+	"sync"
+	"syscall"
+	"time"
 
 	"github.com/gorilla/mux"
 	_ "github.com/lib/pq"
@@ -29,6 +35,10 @@ import (
 
 func main() {
 
+	// root context for graceful shutdown
+	rootCtx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	// first initialization of logger
 	logger.Logger()
 	defer logger.L().Sync()
@@ -47,10 +57,15 @@ func main() {
 		if err == nil {
 			break
 		}
+		logger.L().Warn("failed to connect to database, retrying...",
+			zap.Int("attempt", i+1),
+			zap.String("error", err.Error()),
+		)
 	}
 	if err != nil {
 		logger.L().Fatal("failed to open database")
 	}
+	defer db.Close()
 
 	// var for db queries
 	dbQueries := sqlc.New(db)
@@ -77,13 +92,79 @@ func main() {
 	r.HandleFunc("/order/{id}", handlers.List).Methods("GET")
 	r.PathPrefix("/swagger/").Handler(httpSwagger.WrapHandler)
 
+	// HTTP Server setup
+	srv := &http.Server{
+		Addr:    cfg.HttpPort,
+		Handler: r,
+	}
+
 	logger.L().Info("starting server",
 		zap.String("host", "localhost"),
 		zap.String("port", cfg.HttpPort),
 	)
 
-	// run kafka consumer and producer with server
-	go c.Consumer(cfg, lru, handlers.DB)
-	go p.Producer(cfg)
-	http.ListenAndServe(cfg.HttpPort, r)
+	// new wait group
+	var wg sync.WaitGroup
+
+	// run http server
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		logger.L().Info("http server starting", zap.String("addr", "localhost"+cfg.HttpPort))
+		if err := http.ListenAndServe(cfg.HttpPort, r); err != nil && err != http.ErrServerClosed {
+			logger.L().Fatal("http.ListenAndServe failed", zap.Error(err))
+		}
+	}()
+
+	// run kafka consumer
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		c.Consumer(rootCtx, cfg, handlers.Cache, handlers.DB)
+		logger.L().Info("kafka consumer stopped")
+	}()
+
+	// run kafka producer
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		p.Producer(cfg)
+		logger.L().Info("kafka producer stopped")
+	}()
+
+	// signal channel
+	sigCh := make(chan os.Signal, 1)
+	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
+
+	// wait for signal
+	sig := <-sigCh
+	logger.L().Info("shutdown signal received", zap.String("signal", sig.String()))
+
+	// stop kafka cosumer and producer
+	cancel()
+
+	// graceful HTTP shutdown
+	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer shutdownCancel()
+	if err := srv.Shutdown(shutdownCtx); err != nil {
+		logger.L().Error("http server shutdown error", zap.Error(err))
+	} else {
+		logger.L().Info("http server stopped gracefully")
+	}
+
+	// wait for goroutines to finish
+	doneCh := make(chan struct{})
+	go func() {
+		wg.Wait()
+		close(doneCh)
+	}()
+
+	select {
+	case <-doneCh:
+		logger.L().Info("all goroutines finished")
+	case <-time.After(20 * time.Second):
+		logger.L().Warn("timeout waiting for goroutines, forcing exit")
+	}
+
+	logger.L().Info("service stopped")
 }
