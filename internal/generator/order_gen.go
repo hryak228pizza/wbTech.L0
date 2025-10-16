@@ -30,7 +30,7 @@ func NewOrder() m.Order {
 
 	// delivery fields
 	name := "testName"
-	phone := "+72345678888"
+	phone := "+74950000000"
 	zip := "123456"
 	city := "testCity"
 	addr := "testAddr"
