@@ -12,6 +12,7 @@ import (
 )
 
 var (
+	//phoneRegexp = regexp.MustCompile(`^(?:\+7|8)[-\s]?\d{3}[-\s]?\d{3}[-\s]?\d{2}[-\s]?\d{2}$`)
 	emailRegexp = regexp.MustCompile(`^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$`)
 	zipRegexp   = regexp.MustCompile(`^\d+$`)
 	nameRegexp  = regexp.MustCompile(`^[a-zA-Z\s-]+$`)
@@ -59,8 +60,25 @@ func NewValidator() *Validate {
 	})
 	// registrate phone validation
 	newValidator.RegisterValidation("phone", func(fl validator.FieldLevel) bool {
-		num, err := phonenumbers.Parse(fl.Field().String(), "")
-		return err == nil && phonenumbers.IsValidNumber(num)
+		phone := strings.TrimSpace(fl.Field().String())
+		if phone == "" {
+			return false
+		}
+		var num *phonenumbers.PhoneNumber
+		var err error
+		if strings.HasPrefix(phone, "+") {
+			// international standart
+			num, err = phonenumbers.Parse(phone, "")
+		} else if strings.HasPrefix(phone, "8") {
+			// local RU standart
+			num, err = phonenumbers.Parse(phone, "RU")
+		} else {
+			return false
+		}
+		if err != nil {
+			return false
+		}
+		return phonenumbers.IsValidNumber(num)
 	})
 	// registrate email validation
 	newValidator.RegisterValidation("email", func(fl validator.FieldLevel) bool {
