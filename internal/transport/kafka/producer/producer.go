@@ -18,11 +18,11 @@ func Producer(cfg *config.Config) {
 
 	// init writer
 	w := &kafka.Writer{
-		Addr: 		kafka.TCP(cfg.KafkaBroker), 
-		Topic:      cfg.KafkaTopic,
+		Addr:         kafka.TCP(cfg.KafkaBroker),
+		Topic:        cfg.KafkaTopic,
 		RequiredAcks: -1,
-		Balancer:   &kafka.LeastBytes{},
-    }
+		Balancer:     &kafka.LeastBytes{},
+	}
 	defer w.Close()
 
 	logger.L().Info("producer subscribe",

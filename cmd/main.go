@@ -39,7 +39,7 @@ func main() {
 	// open database
 	var db *sql.DB
 	var err error
-	for i:=0; i<10; i++ {
+	for i := 0; i < 10; i++ {
 		db, err = sql.Open("postgres", cfg.Dsn)
 		if err == nil {
 			err = db.Ping()
@@ -47,11 +47,11 @@ func main() {
 		if err == nil {
 			break
 		}
-	}	
+	}
 	if err != nil {
 		logger.L().Fatal("failed to open database")
 	}
-	
+
 	// var for db queries
 	dbQueries := sqlc.New(db)
 

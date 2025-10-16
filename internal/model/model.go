@@ -3,22 +3,22 @@ package model
 import "time"
 
 type Order struct {
-	OrderUID    string  `json:"order_uid"`
-	TrackNumber string  `json:"track_number"`
-	Entry       *string `json:"entry"`
+	OrderUID    string  `json:"order_uid" validate:"required"`
+	TrackNumber string  `json:"track_number" validate:"required"`
+	Entry       *string `json:"entry" validate:"required"`
 
-	Delivery Delivery `json:"delivery"`
-	Payment  Payment  `json:"payment"`
-	Items    []*Item  `json:"items"`
+	Delivery Delivery `json:"delivery" validate:"required,dive"`
+	Payment  Payment  `json:"payment" validate:"required,dive"`
+	Items    []*Item  `json:"items" validate:"required,dive,required"`
 
-	Locale            *string    `json:"locale"`
+	Locale            *string    `json:"locale" validate:"required"`
 	InternalSignature *string    `json:"internal_signature"`
-	CustomerID        *string    `json:"customer_id"`
-	DeliveryService   *string    `json:"delivery_service"`
-	ShardKey          *string    `json:"shardkey"`
-	SmID              *int64     `json:"sm_id"`
-	DateCreated       *time.Time `json:"date_created,omitempty"`
-	OofShard          *string    `json:"oof_shard"`
+	CustomerID        *string    `json:"customer_id" validate:"required"`
+	DeliveryService   *string    `json:"delivery_service" validate:"required"`
+	ShardKey          *string    `json:"shardkey" validate:"required"`
+	SmID              *int64     `json:"sm_id" validate:"required"`
+	DateCreated       *time.Time `json:"date_created,omitempty" validate:"required,notfuture"`
+	OofShard          *string    `json:"oof_shard" validate:"required"`
 }
 
 type Delivery struct {
@@ -33,30 +33,30 @@ type Delivery struct {
 }
 
 type Payment struct {
-	Transaction  string  `json:"transaction"`
+	Transaction  string  `json:"transaction" validate:"required"`
 	RequestID    *string `json:"request_id"`
-	Currency     *string `json:"currency"`
-	Provider     *string `json:"provider"`
-	Amount       *int64  `json:"amount"`
-	PaymentDT    *int64  `json:"payment_dt"`
-	Bank         *string `json:"bank"`
-	DeliveryCost *int64  `json:"delivery_cost"`
-	GoodsTotal   *int64  `json:"goods_total"`
-	CustomFee    *int64  `json:"custom_fee"`
+	Currency     *string `json:"currency" validate:"required"`
+	Provider     *string `json:"provider" validate:"required"`
+	Amount       *int64  `json:"amount" validate:"required"`
+	PaymentDT    *int64  `json:"payment_dt" validate:"required"`
+	Bank         *string `json:"bank" validate:"required"`
+	DeliveryCost *int64  `json:"delivery_cost" validate:"required"`
+	GoodsTotal   *int64  `json:"goods_total" validate:"required"`
+	CustomFee    *int64  `json:"custom_fee" validate:"required"`
 }
 
 type Item struct {
 	ID          int     `json:"-"`
 	OrderUID    string  `json:"-"`
-	ChrtID      *int64  `json:"chrt_id"`
-	TrackNumber string  `json:"track_number"`
-	Price       *int64  `json:"price"`
-	Rid         *string `json:"rid"`
-	Name        *string `json:"name"`
-	Sale        *int64  `json:"sale"`
-	Size        *string `json:"size"`
-	TotalPrice  *int64  `json:"total_price"`
-	NmID        *int64  `json:"nm_id"`
-	Brand       *string `json:"brand"`
-	Status      *int64  `json:"status"`
+	ChrtID      *int64  `json:"chrt_id" validate:"required"`
+	TrackNumber string  `json:"track_number" validate:"required"`
+	Price       *int64  `json:"price" validate:"required"`
+	Rid         *string `json:"rid" validate:"required"`
+	Name        *string `json:"name" validate:"required"`
+	Sale        *int64  `json:"sale" validate:"required"`
+	Size        *string `json:"size" validate:"required"`
+	TotalPrice  *int64  `json:"total_price" validate:"required"`
+	NmID        *int64  `json:"nm_id" validate:"required"`
+	Brand       *string `json:"brand" validate:"required"`
+	Status      *int64  `json:"status" validate:"required"`
 }

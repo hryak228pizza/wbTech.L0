@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 
+	"github.com/go-playground/validator/v10"
 	"github.com/hryak228pizza/wbTech.L0/internal/config"
 	"github.com/hryak228pizza/wbTech.L0/internal/logger"
 	"github.com/hryak228pizza/wbTech.L0/internal/model"
@@ -34,13 +35,12 @@ func Consumer(cfg *config.Config, cache *cache.Cache, db *sql.DB) {
 
 	// init validator
 	validate := validation.NewValidator()
-	
+
 	for {
 		ctx := context.Background()
 
 		// fetch message
 		m, err := r.FetchMessage(ctx)
-		//cancel()
 		if err != nil {
 			logger.L().Error("kafka fetch failed",
 				zap.String("topic", r.Config().Topic),
@@ -61,9 +61,24 @@ func Consumer(cfg *config.Config, cache *cache.Cache, db *sql.DB) {
 
 		// validate order data
 		if err := validate.ValidateOrder(&order); err != nil {
-			logger.L().Error("validation failed",
+			if verrs, ok := err.(validator.ValidationErrors); ok {
+				for _, verr := range verrs {
+					logger.L().Error("validation error",
+						zap.String("order_uid", order.OrderUID),
+						zap.String("field", verr.Namespace()),
+						zap.String("tag", verr.Tag()),
+						zap.String("param", verr.Param()),
+						zap.Any("value", verr.Value()),
+					)
+				}
+			} else {
+				logger.L().Error("validation failed",
+					zap.String("order_uid", order.OrderUID),
+					zap.Error(err),
+				)
+			}
+			logger.L().Warn("invalid order skipped",
 				zap.String("order_uid", order.OrderUID),
-				zap.Error(err),
 			)
 			continue
 		}
@@ -74,14 +89,14 @@ func Consumer(cfg *config.Config, cache *cache.Cache, db *sql.DB) {
 				zap.String("error", err.Error()),
 			)
 			continue
-		} 
-		
+		}
+
 		if err := r.CommitMessages(ctx, m); err != nil {
-			logger.L().Error("commit failed", 
+			logger.L().Error("commit failed",
 				zap.Error(err),
 			)
 		} else {
-			logger.L().Info("order saved and committed", 
+			logger.L().Info("order saved and committed",
 				zap.String("order_id", order.OrderUID),
 			)
 		}
