@@ -12,7 +12,6 @@ import (
 )
 
 var (
-	//phoneRegexp = regexp.MustCompile(`^(?:\+7|8)[-\s]?\d{3}[-\s]?\d{3}[-\s]?\d{2}[-\s]?\d{2}$`)
 	emailRegexp = regexp.MustCompile(`^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$`)
 	zipRegexp   = regexp.MustCompile(`^\d+$`)
 	nameRegexp  = regexp.MustCompile(`^[a-zA-Z\s-]+$`)
