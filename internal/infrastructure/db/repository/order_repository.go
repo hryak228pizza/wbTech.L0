@@ -1,12 +1,94 @@
 package repository
 
 import (
+	"context"
 	"database/sql"
 	"time"
 
 	sqlc "github.com/hryak228pizza/wbTech.L0/internal/infrastructure/db/gen"
 	"github.com/hryak228pizza/wbTech.L0/internal/model"
 )
+
+type orderRepo struct {
+	DB *sql.DB
+}
+
+func NewOrderRepo(db *sql.DB) *orderRepo {
+	return &orderRepo{DB: db}
+}
+
+// saves order in DB
+func (r *orderRepo) Save(ctx context.Context, o *model.Order) error {
+
+	// begin transaction
+	tx, err := r.DB.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if p := recover(); p != nil {
+			_ = tx.Rollback()
+			panic(p)
+		}
+		if err != nil {
+			_ = tx.Rollback()
+		}
+	}()
+
+	// inserts:
+	// orders
+	_, err = tx.ExecContext(ctx, `INSERT INTO orders 
+		(order_uid, track_number, entry, locale, internal_signature, 
+		customer_id, delivery_service, shardkey, sm_id, date_created, oof_shard) 
+		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`,
+		o.OrderUID, o.TrackNumber, o.Entry, o.Locale, o.InternalSignature,
+		o.CustomerID, o.DeliveryService, o.ShardKey, o.SmID, o.DateCreated, o.OofShard)
+	if err != nil {
+		return err
+	}
+
+	// delivery
+	_, err = tx.ExecContext(ctx, `INSERT INTO delivery 
+		(order_uid, name, phone, zip, city, address, region, email) 
+		VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
+		o.OrderUID, o.Delivery.Name, o.Delivery.Phone, o.Delivery.Zip,
+		o.Delivery.City, o.Delivery.Address, o.Delivery.Region, o.Delivery.Email)
+	if err != nil {
+		return err
+	}
+
+	// payment
+	_, err = tx.ExecContext(ctx, `INSERT INTO payment 
+		(transaction, request_id, currency, provider, amount, payment_dt, 
+		bank, delivery_cost, goods_total, custom_fee) 
+		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
+		o.Payment.Transaction, o.Payment.RequestID, o.Payment.Currency,
+		o.Payment.Provider, o.Payment.Amount, o.Payment.PaymentDT,
+		o.Payment.Bank, o.Payment.DeliveryCost, o.Payment.GoodsTotal,
+		o.Payment.CustomFee)
+	if err != nil {
+		return err
+	}
+
+	// items
+	for _, item := range o.Items {
+		_, err = tx.ExecContext(ctx, `INSERT INTO items 
+			(order_uid, chrt_id, track_number, price, rid, name, sale, size, 
+			total_price, nm_id, brand, status) 
+			VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`,
+			o.OrderUID, item.ChrtID, item.TrackNumber, item.Price, item.Rid,
+			item.Name, item.Sale, item.Size, item.TotalPrice,
+			item.NmID, item.Brand, item.Status)
+		if err != nil {
+			return err
+		}
+	}
+
+	if err := tx.Commit(); err != nil {
+		return err
+	}
+	return nil
+}
 
 // conv functions
 func str(ns sql.NullString) *string {
