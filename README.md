@@ -6,16 +6,12 @@
 git clone github.com/hryak228pizza/wbTech.L0
 ```
 2. В корне проекта у Вас должен быть файл .env. Установите в него необходимые для Вас параметры. Используйте .env.template как пример
-3. Запустите контейнер
+3. Запустите контейнеры
 ```shell
 docker compose up -d
 или docker compose up -d --build
 ```
-4. Находясь в корневой папке проекта выполните
-```shell
-go run ./cmd/main.go
-```
-5. Вы можете ознакомиться с документацией по пути
+4. Вы можете ознакомиться с документацией по пути
 ```shell
 /swagger/
 ```
@@ -33,14 +29,15 @@ go run ./cmd/main.go
 
 ## Структура проекта
 - __./cmd/main.go__ - точка входа.
+- __./internal/config__ - обработка конфигурационнных файлов сервиса (из .env).
 - __./internal/generator__ - генератор заказов. Используется для продюсера брокера как симуляция новых заказов, которые создают пользователи.
 - __./internal/infrastucture__ - миграции и запросы для базы данных.
-- __./internal/logger__ - реализация логгера через go.uber.org/zap.
+- __./internal/logger__ - реализация логгера через [zap](https://pkg.go.dev/go.uber.org/zap).
 - __./internal/model__ - модель данных заказа.
-- __./internal/transport/handler__ - реализация обработчика запросов на сервисе по эндпоинтам "/" и "/order/". Здесь же папка с документацией, сгенерированной при помощи swagger.
+- __./internal/transport/handler__ - реализация обработчика запросов на сервисе по эндпоинтам "/" и "/order/". Здесь же папка с документацией, сгенерированной при помощи [swagger](https://github.com/swaggo/swag).
 - __./internal/transport/kafka__ - реализация продюсера и консьюмера брокера.
-- __./pkg/cache__ - реализация кеша при помощи github.com/hashicorp/golang-lru.
-- __./pkg/validation__ - реализация валидатора данных при помощи github.com/go-playground/validator.
+- __./pkg/cache__ - реализация кеша при помощи [golang-lru](https://github.com/hashicorp/golang-lru).
+- __./pkg/validation__ - реализация валидатора данных при помощи [validator](https://github.com/go-playground/validator).
 - __./templates__ - шаблон для веб-страниц.
 
 ## Что изменилось?
@@ -54,9 +51,9 @@ go run ./cmd/main.go
 - Больше нет устаревших и запрещенных методов
 - Валидируются все данные
 - Программа завершается изящно
+- Предусмотрен механизм наката и отката миграций через Makefile (с использованием [goose](https://github.com/pressly/goose))
 
 ## Что еще нужно изменить?
-- Механизм наката/отката миграций??
 ___
 - Реализовать DLQ
 - Реализовать Retry
