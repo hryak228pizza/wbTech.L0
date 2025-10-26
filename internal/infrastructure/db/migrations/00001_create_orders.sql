@@ -1,3 +1,5 @@
+-- +goose Up
+-- +goose StatementBegin
 CREATE TABLE IF NOT EXISTS orders (
     order_uid VARCHAR(50) PRIMARY KEY,
     track_number VARCHAR(50) NOT NULL,
@@ -11,3 +13,9 @@ CREATE TABLE IF NOT EXISTS orders (
     date_created TIMESTAMP WITH TIME ZONE,
     oof_shard VARCHAR(10)
 );
+-- +goose StatementEnd
+
+-- +goose Down
+-- +goose StatementBegin
+DROP TABLE IF EXISTS orders;
+-- +goose StatementEnd

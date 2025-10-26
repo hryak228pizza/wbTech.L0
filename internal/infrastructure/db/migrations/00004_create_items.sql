@@ -1,3 +1,5 @@
+-- +goose Up
+-- +goose StatementBegin
 CREATE TABLE IF NOT EXISTS items (
     id SERIAL PRIMARY KEY,
     order_uid VARCHAR(50) REFERENCES orders(order_uid),
@@ -13,3 +15,9 @@ CREATE TABLE IF NOT EXISTS items (
     brand VARCHAR(100),
     status INTEGER
 );
+-- +goose StatementEnd
+
+-- +goose Down
+-- +goose StatementBegin
+DROP TABLE IF EXISTS items;
+-- +goose StatementEnd

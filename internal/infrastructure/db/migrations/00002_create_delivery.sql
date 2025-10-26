@@ -1,3 +1,5 @@
+-- +goose Up
+-- +goose StatementBegin
 CREATE TABLE IF NOT EXISTS delivery (
     order_uid VARCHAR(50) PRIMARY KEY REFERENCES orders(order_uid),
     name VARCHAR(100),
@@ -8,3 +10,9 @@ CREATE TABLE IF NOT EXISTS delivery (
     region VARCHAR(100),
     email VARCHAR(100)
 );
+-- +goose StatementEnd
+
+-- +goose Down
+-- +goose StatementBegin
+DROP TABLE IF EXISTS delivery;
+-- +goose StatementEnd
