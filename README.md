@@ -32,7 +32,7 @@ docker compose up -d
 - __./cmd/main.go__ - точка входа.
 - __./internal/config__ - обработка конфигурационнных файлов сервиса (из .env).
 - __./internal/generator__ - генератор заказов. Используется для продюсера брокера как симуляция новых заказов, которые создают пользователи.
-- __./internal/infrastucture__ - миграции и запросы для базы данных.
+- __./internal/infrastucture__ - миграции, запросы для базы данных и репозиторий для БД.
 - __./internal/logger__ - реализация логгера через [zap](https://pkg.go.dev/go.uber.org/zap).
 - __./internal/model__ - модель данных заказа.
 - __./internal/transport/handler__ - реализация обработчика запросов на сервисе по эндпоинтам "/" и "/order/". Здесь же папка с документацией, сгенерированной при помощи [swagger](https://github.com/swaggo/swag).
