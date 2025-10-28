@@ -4,7 +4,6 @@ import (
 	"context"
 
 	lru "github.com/hashicorp/golang-lru/v2"
-	sqlc "github.com/hryak228pizza/wbTech.L0/internal/infrastructure/db/gen"
 	"github.com/hryak228pizza/wbTech.L0/internal/infrastructure/db/repository"
 	"github.com/hryak228pizza/wbTech.L0/internal/model"
 )
@@ -14,7 +13,7 @@ type Cache struct {
 }
 
 // NewCache creates new cache size of N
-func NewCache(size int, dbQueries *sqlc.Queries) (*Cache, error) {
+func NewCache(size int, repo repository.OrderRepository) (*Cache, error) {
 
 	// create empty map
 	cache, err := lru.New[string, *model.Order](size)
@@ -26,33 +25,12 @@ func NewCache(size int, dbQueries *sqlc.Queries) (*Cache, error) {
 	ctx := context.Background()
 
 	// get last N orders
-	lastOrders, err := dbQueries.GetLastOrders(ctx, int32(size))
+	lastOrders, err := repo.GetLastOrders(ctx, size)
 	if err != nil {
 		return nil, err
 	}
 
-	for _, elem := range lastOrders {
-
-		// parse delivery
-		delivery, err := dbQueries.GetDeliveryByOrderUID(ctx, elem.OrderUid)
-		if err != nil {
-			return nil, err
-		}
-
-		// parse payment
-		payment, err := dbQueries.GetPaymentByTransaction(ctx, elem.OrderUid)
-		if err != nil {
-			return nil, err
-		}
-
-		// parse items
-		items, err := dbQueries.GetItemsByTrackNumber(ctx, elem.TrackNumber)
-		if err != nil {
-			return nil, err
-		}
-
-		// create full order from piecies
-		order := repository.MapToOrder(elem, delivery, payment, items)
+	for _, order := range lastOrders {
 
 		// save order to cache
 		c.SetOrder(order)

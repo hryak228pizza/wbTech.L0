@@ -16,8 +16,9 @@ import (
 
 	"github.com/hryak228pizza/wbTech.L0/internal/config"
 	sqlc "github.com/hryak228pizza/wbTech.L0/internal/infrastructure/db/gen"
+	"github.com/hryak228pizza/wbTech.L0/internal/infrastructure/db/repository"
 	"github.com/hryak228pizza/wbTech.L0/internal/logger"
-	h "github.com/hryak228pizza/wbTech.L0/internal/transport/handler"
+	"github.com/hryak228pizza/wbTech.L0/internal/transport/handler"
 	_ "github.com/hryak228pizza/wbTech.L0/internal/transport/handler/docs"
 	c "github.com/hryak228pizza/wbTech.L0/internal/transport/kafka/consumer"
 	p "github.com/hryak228pizza/wbTech.L0/internal/transport/kafka/producer"
@@ -52,7 +53,7 @@ func main() {
 	for i := 0; i < 10; i++ {
 		db, err = sql.Open("postgres", cfg.Dsn)
 		if err == nil {
-			err = db.Ping()
+			err = db.PingContext(rootCtx)
 		}
 		if err == nil {
 			break
@@ -68,10 +69,16 @@ func main() {
 	defer db.Close()
 
 	// var for db queries
-	dbQueries := sqlc.New(db)
+	queries := sqlc.New(db)
+
+	// var for repo
+	repo := repository.NewOrderRepository(db, queries)
+
+	// var for template
+	tmpl := template.Must(template.ParseGlob("templates/*"))
 
 	// create cache
-	lru, err := cache.NewCache(cfg.CacheSize, dbQueries)
+	lru, err := cache.NewCache(cfg.CacheSize, repo)
 	if err != nil {
 		logger.L().Fatal("failed to create cache",
 			zap.String("error", err.Error()),
@@ -79,17 +86,12 @@ func main() {
 	}
 
 	// handlers setup
-	handlers := &h.Handler{
-		DB:        db,
-		DbQueries: dbQueries,
-		Tmpl:      template.Must(template.ParseGlob("templates/*")),
-		Cache:     lru,
-	}
+	h := handler.NewHandler(repo, lru, tmpl)
 
 	// create router
 	r := mux.NewRouter()
-	r.HandleFunc("/", handlers.Page).Methods("GET")
-	r.HandleFunc("/order/{id}", handlers.List).Methods("GET")
+	r.HandleFunc("/", h.Page).Methods("GET")
+	r.HandleFunc("/order/{id}", h.List).Methods("GET")
 	r.PathPrefix("/swagger/").Handler(httpSwagger.WrapHandler)
 
 	// HTTP Server setup
@@ -120,8 +122,9 @@ func main() {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		c.Consumer(rootCtx, cfg, handlers.Cache, handlers.DB)
+		c.Consumer(rootCtx, cfg, h.Cache, repo)
 		logger.L().Info("kafka consumer stopped")
+
 	}()
 
 	// run kafka producer

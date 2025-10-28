@@ -3,25 +3,18 @@ package repository
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"time"
 
 	sqlc "github.com/hryak228pizza/wbTech.L0/internal/infrastructure/db/gen"
 	"github.com/hryak228pizza/wbTech.L0/internal/model"
 )
 
-type orderRepo struct {
-	DB *sql.DB
-}
-
-func NewOrderRepo(db *sql.DB) *orderRepo {
-	return &orderRepo{DB: db}
-}
-
 // saves order in DB
-func (r *orderRepo) Save(ctx context.Context, o *model.Order) error {
+func (r *orderRepository) Save(ctx context.Context, o *model.Order) error {
 
 	// begin transaction
-	tx, err := r.DB.BeginTx(ctx, nil)
+	tx, err := r.db.BeginTx(ctx, nil)
 	if err != nil {
 		return err
 	}
@@ -88,6 +81,72 @@ func (r *orderRepo) Save(ctx context.Context, o *model.Order) error {
 		return err
 	}
 	return nil
+}
+
+// returns order by its uid
+func (r *orderRepository) GetByUID(ctx context.Context, uid string) (*model.Order, error) {
+
+	orderRow, err := r.queries.GetOrderByUID(ctx, uid)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	delivery, err := r.queries.GetDeliveryByOrderUID(ctx, uid)
+	if err != nil {
+		return nil, err
+	}
+
+	payment, err := r.queries.GetPaymentByTransaction(ctx, uid)
+	if err != nil {
+		return nil, err
+	}
+
+	items, err := r.queries.GetItemsByTrackNumber(ctx, orderRow.TrackNumber)
+	if err != nil {
+		return nil, err
+	}
+
+	mappedOrder := MapToOrder(orderRow, delivery, payment, items)
+	return mappedOrder, nil
+}
+
+func (r *orderRepository) GetLastOrders(ctx context.Context, limit int) ([]*model.Order, error) {
+
+	orders, err := r.queries.GetLastOrders(ctx, int32(limit))
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	result := make([]*model.Order, 0, len(orders))
+
+	for _, o := range orders {
+
+		delivery, err := r.queries.GetDeliveryByOrderUID(ctx, o.OrderUid)
+		if err != nil {
+			return nil, err
+		}
+
+		payment, err := r.queries.GetPaymentByTransaction(ctx, o.OrderUid)
+		if err != nil {
+			return nil, err
+		}
+
+		items, err := r.queries.GetItemsByTrackNumber(ctx, o.TrackNumber)
+		if err != nil {
+			return nil, err
+		}
+
+		mapped := MapToOrder(o, delivery, payment, items)
+		result = append(result, mapped)
+	}
+
+	return result, nil
 }
 
 // conv functions

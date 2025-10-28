@@ -2,7 +2,6 @@ package consumer
 
 import (
 	"context"
-	"database/sql"
 	"encoding/json"
 	"time"
 
@@ -18,7 +17,7 @@ import (
 )
 
 // runs a consumer for reading all incoming orders with kafka
-func Consumer(ctx context.Context, cfg *config.Config, cache *cache.Cache, db *sql.DB) {
+func Consumer(ctx context.Context, cfg *config.Config, cache *cache.Cache, repo repository.OrderRepository) {
 
 	// init reader
 	r := kafka.NewReader(kafka.ReaderConfig{
@@ -48,8 +47,8 @@ func Consumer(ctx context.Context, cfg *config.Config, cache *cache.Cache, db *s
 		}
 
 		// process message
-		//innerCtx := context.Background()
-		if err := processMessage(ctx, r, db, cache, validate); err != nil {
+		// innerCtx := context.Background()
+		if err := processMessage(ctx, r, cache, validate, repo); err != nil {
 			logger.L().Error("message processing failed",
 				zap.String("error", err.Error()),
 			)
@@ -57,9 +56,7 @@ func Consumer(ctx context.Context, cfg *config.Config, cache *cache.Cache, db *s
 	}
 }
 
-func processMessage(ctx context.Context, r *kafka.Reader, db *sql.DB, cache *cache.Cache, validate *validation.Validate) error {
-
-	repo := repository.NewOrderRepo(db)
+func processMessage(ctx context.Context, r *kafka.Reader, cache *cache.Cache, validate *validation.Validate, repo repository.OrderRepository) error {
 
 	// fetch message
 	m, err := r.FetchMessage(ctx)
